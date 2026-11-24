@@ -1,0 +1,21 @@
+name: collect
+on: workflow_dispatch
+permissions:
+  contents: write
+  issues: write
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin arch-reports && git checkout arch-reports || git checkout --orphan arch-reports
+          date -u > data.txt && git add data.txt && git commit -m "collect" 
+          git push origin arch-reports && echo BOT_PUSH_OK || echo BOT_PUSH_FAILED
+          gh label create arch:signal -R "$GITHUB_REPOSITORY" --force || true
+          gh issue create -R "$GITHUB_REPOSITORY" --title "signal: test" --body "opened by the job token" --label arch:signal && echo ISSUE_OK || echo ISSUE_FAILED
+          gh issue list -R "$GITHUB_REPOSITORY" --label arch:signal --json number,state,author --jq '.[]|[.number,.state,.author.login]|@tsv'
