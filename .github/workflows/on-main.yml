@@ -1,0 +1,9 @@
+name: on-main
+on:
+  push:
+    branches: [main]
+jobs:
+  ran:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "push to main by $GITHUB_ACTOR"

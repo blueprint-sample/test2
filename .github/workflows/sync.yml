@@ -1,0 +1,36 @@
+name: sync
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: report artifact
+        run: echo "{\"repo\":\"$GITHUB_REPOSITORY\",\"event\":\"$GITHUB_EVENT_NAME\",\"at\":\"$(date -u +%FT%TZ)\"}" > report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arch-report
+          path: report.json
+          retention-days: 90
+      - name: open or update sync PR
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          set -x
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B arch-sync
+          date -u > lock.txt
+          git add lock.txt && git commit -m "sync" && git push -f origin arch-sync
+          gh pr create --head arch-sync --base main --title "sync" --body "sync PR opened by the job token" || echo "PR_CREATE_FAILED"
+          n=$(gh pr view arch-sync --json number --jq .number) || exit 0
+          gh workflow run gate.yml --ref arch-sync -f pr="$n" || echo "DISPATCH_FAILED"
+          gh pr merge "$n" --auto --merge || echo "AUTOMERGE_FAILED"

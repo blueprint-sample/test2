@@ -1,0 +1,17 @@
+name: gate
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number
+        required: true
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "event=$GITHUB_EVENT_NAME sha=$GITHUB_SHA ref=$GITHUB_REF actor=$GITHUB_ACTOR"
